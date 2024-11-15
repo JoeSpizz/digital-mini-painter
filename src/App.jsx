@@ -12,68 +12,47 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import { Color } from 'three';
 import Draggable from 'react-draggable';
-import './App.css'; 
+import * as THREE from 'three';
+import './App.css';
 
 function App() {
   const [modelPath, setModelPath] = useState(null);
   const [modelType, setModelType] = useState(null);
   const dispatch = useDispatch();
-  
+
   // Brush States
   const [brushColor, setBrushColor] = useState(new Color('#FF0000'));
   const [brushSize, setBrushSize] = useState(1.5);
   const [brushOpacity, setBrushOpacity] = useState(0.75);
-  const [isPaintMode, setIsPaintMode] = useState(false);
   
   const modelViewerRef = useRef();
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
-  
-  // **New: Color History State**
-  const [colorHistory, setColorHistory] = useState([new Color('#FF0000').getStyle()]); // Initialize with initial color
 
-  // **New: Function to Add Color to History**
+  // Color History State
+  const [colorHistory, setColorHistory] = useState([new Color('#FF0000').getStyle()]);
+
+  // Color History Functions
   const addColorToHistory = (newColor) => {
     const colorLower = newColor.toLowerCase();
     setColorHistory((prev) => {
-      // Remove the color if it already exists
       const filtered = prev.filter((c) => c.toLowerCase() !== colorLower);
-      // Add to the front
-      const updated = [colorLower, ...filtered];
-      // Limit to 20
-      return updated.slice(0, 20);
+      return [colorLower, ...filtered].slice(0, 20);
     });
   };
 
-  // **New: Callback when a color is used in painting**
-  const handleColorUsed = (color) => {
-    addColorToHistory(color.getStyle());
-  };
+  const handleColorUsed = (color) => addColorToHistory(color.getStyle());
 
-  // **Modified Brush Color Setter: No longer adds to history**
-  const handleSetBrushColor = (color) => {
-    setBrushColor(color);
-    // Removed: addColorToHistory(color.getStyle());
-  };
+  const handleSetBrushColor = (color) => setBrushColor(color);
 
-  // **Function to Select Color from History**
-  const selectColorFromHistory = (color) => {
-    const newColor = new Color(color);
-    setBrushColor(newColor);
-    // Do not add to history here since it's a selection, not a usage
-  };
+  const selectColorFromHistory = (color) => setBrushColor(new Color(color));
 
   const handleFileUpload = (url, type) => {
     setModelPath(url);
     setModelType(type);
-
     if (modelViewerRef.current) {
-      if (modelViewerRef.current.history) {
-        modelViewerRef.current.history.current = [];
-      }
-      if (modelViewerRef.current.redoHistory) {
-        modelViewerRef.current.redoHistory.current = [];
-      }
+      modelViewerRef.current.history.current = [];
+      modelViewerRef.current.redoHistory.current = [];
       setCanUndo(false);
       setCanRedo(false);
     }
@@ -91,28 +70,9 @@ function App() {
     console.log('Material reset and history cleared');
   };
 
-  const toggleMode = () => {
-    setIsPaintMode((prev) => !prev);
-    console.log('Mode toggled:', isPaintMode ? 'Switched to Move Mode' : 'Switched to Paint Mode');
-  };
-
-  const handleUndo = () => {
-    if (modelViewerRef.current) {
-      modelViewerRef.current.undo();
-    }
-  };
-
-  const handleRedo = () => {
-    if (modelViewerRef.current) {
-      modelViewerRef.current.redo();
-    }
-  };
-
-  const handleExport = (filename) => {
-    if (modelViewerRef.current) {
-      modelViewerRef.current.exportModel(filename);
-    }
-  };
+  const handleUndo = () => modelViewerRef.current?.undo();
+  const handleRedo = () => modelViewerRef.current?.redo();
+  const handleExport = (filename) => modelViewerRef.current?.exportModel(filename);
 
   const handleHistoryChange = (undoAvailable, redoAvailable) => {
     setCanUndo(undoAvailable);
@@ -121,25 +81,24 @@ function App() {
 
   return (
     <div className="App relative w-screen h-screen bg-gray-100">
-      {/* Toolbar with File Upload Handler */}
+      {/* Toolbar */}
       <Toolbar
         onFileUpload={handleFileUpload}
-        onModeToggle={toggleMode}
         onReset={handleResetMaterial}
         onUndo={handleUndo}
         onRedo={handleRedo}
         onExport={handleExport}
         canUndo={canUndo}
         canRedo={canRedo}
-        isPaintMode={isPaintMode}
       />
 
-      {/* Full-Screen Canvas with 100vh */}
-      <Canvas className={`absolute bg-slate-900 inset-0 h-[100vh] ${isPaintMode ? 'paint-cursor' : 'move-cursor'}`}>
+      {/* Canvas */}
+      <Canvas className="absolute bg-slate-900 inset-0 h-[100vh]">
         <PerspectiveCamera makeDefault position={[0, 0, 100]} fov={75} />
         <ambientLight intensity={2} />
         <directionalLight position={[10, 10, 10]} intensity={4} />
         <directionalLight position={[-10, -10, -10]} intensity={4} />
+
         <ModelViewer
           ref={modelViewerRef}
           modelPath={modelPath}
@@ -147,18 +106,23 @@ function App() {
           brushColor={brushColor}
           brushSize={brushSize}
           brushOpacity={brushOpacity}
-          isPaintMode={isPaintMode}
           onHistoryChange={handleHistoryChange}
-          onColorUsed={handleColorUsed} // **Pass Callback to ModelViewer**
+          onColorUsed={handleColorUsed}
         />
-        <OrbitControls
-          enablePan={!isPaintMode}
-          enableZoom={!isPaintMode}
-          enableRotate={!isPaintMode}
-        />
+
+<OrbitControls
+  enablePan={true}
+  enableRotate={true}
+  enableZoom={true}
+  mouseButtons={{
+    MIDDLE: THREE.MOUSE.MIDDLE, // Zoom with middle click (wheel)
+    RIGHT: THREE.MOUSE.RIGHT, // Rotate with right-click
+  }}
+/>
+
       </Canvas>
 
-      {/* Draggable Panels with Headers */}
+      {/* Panels */}
       <Draggable handle=".drag-handle">
         <div className="absolute top-20 left-5 z-10 bg-white p-4 shadow-lg rounded-lg">
           <div className="drag-handle cursor-move bg-gray-300 p-2 rounded-t text-center font-semibold">
@@ -171,8 +135,8 @@ function App() {
             setBrushSize={setBrushSize}
             brushOpacity={brushOpacity}
             setBrushOpacity={setBrushOpacity}
-            colorHistory={colorHistory} // **Pass Color History**
-            selectColorFromHistory={selectColorFromHistory} // **Pass Selection Function**
+            colorHistory={colorHistory}
+            selectColorFromHistory={selectColorFromHistory}
           />
         </div>
       </Draggable>

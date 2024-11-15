@@ -27,9 +27,8 @@ const ModelViewer = forwardRef(
       brushColor,
       brushSize,
       brushOpacity,
-      isPaintMode,
       onHistoryChange,
-      onColorUsed, // **Receive Callback**
+      onColorUsed,
     },
     ref
   ) => {
@@ -222,7 +221,6 @@ const ModelViewer = forwardRef(
     // Painting Function with Smooth Blending and Optimizations
     const paint = useCallback(
       (event) => {
-        if (!isPaintMode) return;
         if (!meshRef.current) {
           console.warn('Mesh reference is not available.');
           return;
@@ -300,7 +298,7 @@ const ModelViewer = forwardRef(
           }
         }
       },
-      [rbushTree, brushColor, brushOpacity, brushSize, inverseMatrix, isPaintMode, tmpVertex, onColorUsed]
+      [rbushTree, brushColor, brushOpacity, brushSize, inverseMatrix, tmpVertex, onColorUsed]
     );
 
     const throttledPaint = useMemo(() => throttle(paint, 30), [paint]);
@@ -313,42 +311,37 @@ const ModelViewer = forwardRef(
 
     // Event Handlers
     const handlePointerDown = (event) => {
-      if (!isPaintMode) return;
+      if (event.button !== 0) return; // Only allow left-click for painting
       setIsPainting(true);
-      // Initialize a new action
       currentAction.current = { vertices: [], vertexSet: new Set() };
-      paint(event);
-      // Clear redo history on new action
+      paint(event); // Initial paint on click
       redoHistory.current = [];
-      triggerHistoryChange(); // Update App.js immediately after clearing redo
+      triggerHistoryChange();
       event.stopPropagation();
     };
-
+    
     const handlePointerMove = (event) => {
-      if (!isPaintMode) return;
-      if (isPainting) {
-        throttledPaint(event);
-      }
+      if (!isPainting) return; // Only paint if isPainting is true
+      throttledPaint(event); // Continuous painting
       setBrushPosition(event.point);
       event.stopPropagation();
     };
-
+    
     const handlePointerUp = () => {
       if (isPainting && currentAction.current && currentAction.current.vertices.length > 0) {
         history.current.push({
-          vertices: currentAction.current.vertices.map(v => ({
+          vertices: currentAction.current.vertices.map((v) => ({
             index: v.index,
             previousColor: v.previousColor.clone(),
             newColor: v.newColor.clone(),
           })),
         });
         currentAction.current = null;
-        triggerHistoryChange(); // Update App.js immediately after pushing to history
-        console.log('Action pushed to history:', history.current[history.current.length - 1]);
+        triggerHistoryChange();
       }
       setIsPainting(false);
     };
-
+    
 
     // src/components/ModelViewer/ModelViewer.js
 
@@ -385,7 +378,7 @@ const ModelViewer = forwardRef(
           />
 
         </mesh>
-        {isPaintMode && <BrushPreview position={brushPosition} brushSize={brushSize} />}
+        <BrushPreview position={brushPosition} brushSize={brushSize} />
       </>
     ) : null;
 

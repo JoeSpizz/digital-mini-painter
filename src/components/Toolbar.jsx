@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-function Toolbar({ onFileUpload, onModeToggle, onUndo, onRedo, onExport, canUndo, canRedo, isPaintMode }) {
+function Toolbar({ onFileUpload, onModeToggle, onUndo, onRedo, onExport, canUndo, canRedo }) {
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
@@ -40,12 +40,6 @@ function Toolbar({ onFileUpload, onModeToggle, onUndo, onRedo, onExport, canUndo
         onChange={handleFileChange}
         className="hidden"
       />
-      <button
-        onClick={onModeToggle}
-        className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-      >
-        {isPaintMode ? 'Paint Mode' : 'Move Mode'}
-      </button>
       
       <button
         onClick={onUndo}

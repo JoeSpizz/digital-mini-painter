@@ -1,22 +1,23 @@
-"use strict";
-const electron = require("electron");
-electron.contextBridge.exposeInMainWorld("ipcRenderer", {
-  on(...args) {
+const { ipcRenderer, contextBridge } = require("electron");
+console.log("Preload script loaded successfully");
+contextBridge.exposeInMainWorld("electron", {
+  saveFile: (filePath, data) => ipcRenderer.invoke("save-file", filePath, data),
+  getSaveFilename: () => ipcRenderer.invoke("get-save-filename"),
+  on: (...args) => {
     const [channel, listener] = args;
-    return electron.ipcRenderer.on(channel, (event, ...args2) => listener(event, ...args2));
+    return ipcRenderer.on(channel, (event, ...args2) => listener(event, ...args2));
   },
-  off(...args) {
+  off: (...args) => {
     const [channel, ...omit] = args;
-    return electron.ipcRenderer.off(channel, ...omit);
+    return ipcRenderer.off(channel, ...omit);
   },
-  send(...args) {
+  send: (...args) => {
     const [channel, ...omit] = args;
-    return electron.ipcRenderer.send(channel, ...omit);
+    return ipcRenderer.send(channel, ...omit);
   },
-  invoke(...args) {
+  invoke: (...args) => {
     const [channel, ...omit] = args;
-    return electron.ipcRenderer.invoke(channel, ...omit);
+    return ipcRenderer.invoke(channel, ...omit);
   }
-  // You can expose other APTs you need here.
-  // ...
+  // Add other APIs as needed
 });

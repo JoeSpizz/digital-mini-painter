@@ -1,12 +1,11 @@
 import { app, BrowserWindow, ipcMain, dialog } from "electron";
-import fs from "fs";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
-const APP_ROOT = path.join(__dirname, "..");
-const RENDERER_DIST = path.join(APP_ROOT, "dist");
+const RENDERER_DIST = path.join(__dirname, "..", "dist");
 function createMainWindow() {
   const mainWindow = new BrowserWindow({
     icon: path.join(__dirname, "./assets/images/mini_painter.png"),
@@ -14,7 +13,7 @@ function createMainWindow() {
     height: 720,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
-      // Adjusted for .js
+      // Points to TypeScript preload
       contextIsolation: true,
       nodeIntegration: false
     }
