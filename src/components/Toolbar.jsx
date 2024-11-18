@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-function Toolbar({ onFileUpload, onModeToggle, onUndo, onRedo, onExport, canUndo, canRedo }) {
+function Toolbar({ onFileUpload, onUndo, onRedo, onExport, canUndo, canRedo }) {
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
@@ -10,8 +10,8 @@ function Toolbar({ onFileUpload, onModeToggle, onUndo, onRedo, onExport, canUndo
       reader.onload = (e) => {
         const arrayBuffer = e.target.result;
         const fileType = file.name.endsWith('.stl') ? 'stl' : 'gltf';
-        const url = URL.createObjectURL(new Blob([arrayBuffer]));
-        onFileUpload(url, fileType);
+        const blobUrl = URL.createObjectURL(new Blob([arrayBuffer]));
+        onFileUpload(blobUrl, fileType, file.path); // Pass the original file path here
       };
       reader.readAsArrayBuffer(file);
     }
@@ -32,7 +32,7 @@ function Toolbar({ onFileUpload, onModeToggle, onUndo, onRedo, onExport, canUndo
       <input
         id="file-upload"
         type="file"
-        accept=".stl,.gltf,.glb"
+        accept=".stl,.gltf,.glb, .json"
         onChange={handleFileChange}
         className="hidden"
       />

@@ -9,8 +9,8 @@ const RENDERER_DIST = path.join(__dirname, "..", "dist");
 function createMainWindow() {
   const mainWindow = new BrowserWindow({
     icon: path.join(__dirname, "./assets/images/mini_painter.png"),
-    width: 1280,
-    height: 720,
+    width: 1920,
+    height: 1080,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       // Points to TypeScript preload
@@ -43,6 +43,19 @@ ipcMain.handle("save-file", async (_, filePath, data) => {
     return `File saved successfully at ${filePath}`;
   }
   return "No file path provided";
+});
+ipcMain.handle("load-file", async (_, filePath) => {
+  try {
+    if (!fs.existsSync(filePath)) {
+      console.warn(`File not found: ${filePath}`);
+      return null;
+    }
+    const data = fs.readFileSync(filePath, "utf-8");
+    return data;
+  } catch (error) {
+    console.error(`Error reading file at ${filePath}:`, error);
+    throw new Error("Failed to load file");
+  }
 });
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {

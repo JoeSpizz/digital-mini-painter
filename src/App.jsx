@@ -48,17 +48,39 @@ function App() {
 
   const selectColorFromHistory = (color) => setBrushColor(new Color(color));
 
-  const handleFileUpload = (url, type) => {
-    setModelPath(url);
-    setModelType(type);
-    if (modelViewerRef.current) {
-      modelViewerRef.current.history.current = [];
-      modelViewerRef.current.redoHistory.current = [];
-      setCanUndo(false);
-      setCanRedo(false);
+// src/App.js
+
+const handleFileUpload = async (url, type, originalFilePath) => {
+  setModelPath(url); // Set the Blob URL for rendering
+  setModelType(type);
+
+  // Attempt to load associated color history file using the original file path
+  const jsonFilePath = originalFilePath.replace(/\.(stl|gltf|glb)$/, '.json');
+  try {
+    const colorHistoryData = await window.electron.loadFile(jsonFilePath); // Load JSON from actual file path
+    const parsedData = JSON.parse(colorHistoryData);
+    
+    if (parsedData?.colorHistory) {
+      setColorHistory(parsedData.colorHistory.map(({ r, g, b }) => `rgb(${r},${g},${b})`));
+      console.log("Color history loaded:", parsedData.colorHistory);
+    } else {
+      console.warn("No color history found in JSON file or file format incorrect");
     }
-    console.log('New model loaded:', url);
-  };
+  } catch (error) {
+    console.warn("No color history JSON file found or failed to load:", error);
+  }
+
+  // Reset history and redo stacks for new model load
+  if (modelViewerRef.current) {
+    modelViewerRef.current.history.current = [];
+    modelViewerRef.current.redoHistory.current = [];
+    setCanUndo(false);
+    setCanRedo(false);
+  }
+
+  console.log('New model loaded:', url);
+};
+
 
   const handleResetMaterial = () => {
     dispatch(resetMaterial());
@@ -75,12 +97,38 @@ function App() {
   const handleRedo = () => modelViewerRef.current?.redo();
   const handleExport = async () => {
     const filePath = await window.electron.getSaveFilename(); // Prompt to get file path
-    const mesh = modelViewerRef.current?.mesh; // Retrieve the mesh reference
     
-    if (filePath && mesh) {
-      exportModel(mesh, filePath);
-    } else {
+    const mesh = modelViewerRef.current?.mesh; // Retrieve the mesh reference
+    if (!filePath || !mesh) {
       console.warn("No model loaded to export or file path not provided.");
+      return;
+    }
+  
+    // Step 1: Export the model as .gltf
+    exportModel(mesh, filePath);
+  
+    // Step 2: Save color history as a JSON object
+    const colorHistoryFilePath = filePath.replace(/\.gltf$/, '.json');
+    const colorHistoryData = {
+      colorHistory: colorHistory.map((colorString) => {
+        const match = colorString.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+        if (match) {
+          const [_, r, g, b] = match;
+          return {
+            r: parseInt(r, 10),
+            g: parseInt(g, 10),
+            b: parseInt(b, 10),
+          };
+        }
+        return null; // In case the color format is unexpected
+      }).filter(Boolean) // Filter out any null results
+    };
+  
+    try {
+      await window.electron.saveFile(colorHistoryFilePath, JSON.stringify(colorHistoryData, null, 2));
+      console.log("Color history saved successfully to", colorHistoryFilePath);
+    } catch (error) {
+      console.error("Error saving color history:", error);
     }
   };
 

@@ -3,6 +3,7 @@ console.log("Preload script loaded successfully");
 contextBridge.exposeInMainWorld("electron", {
   saveFile: (filePath, data) => ipcRenderer.invoke("save-file", filePath, data),
   getSaveFilename: () => ipcRenderer.invoke("get-save-filename"),
+  loadFile: (filePath) => ipcRenderer.invoke("load-file", filePath),
   on: (...args) => {
     const [channel, listener] = args;
     return ipcRenderer.on(channel, (event, ...args2) => listener(event, ...args2));
