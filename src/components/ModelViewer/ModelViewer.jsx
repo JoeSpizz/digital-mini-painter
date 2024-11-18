@@ -277,6 +277,9 @@ const ModelViewer = forwardRef(
     });
 
     colorAttribute.needsUpdate = true;
+    if (onColorUsed) {
+      onColorUsed(brushColor);
+    }
   },
   [brushColor, brushOpacity, brushSize, paintType, geometry]
 );
