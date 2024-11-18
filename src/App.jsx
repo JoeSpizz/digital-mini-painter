@@ -6,6 +6,7 @@ import Toolbar from './components/Toolbar';
 import BrushControls from './components/BrushControls/BrushControls';
 import ControlPanel from './components/ControlPanel/ControlPanel';
 import ColorPicker from './components/ColorPicker/ColorPicker';
+import exportModel from './utils/exportUtils';
 import { useDispatch } from 'react-redux';
 import { resetMaterial } from './redux/materialSlice';
 import { Canvas } from '@react-three/fiber';
@@ -72,7 +73,16 @@ function App() {
 
   const handleUndo = () => modelViewerRef.current?.undo();
   const handleRedo = () => modelViewerRef.current?.redo();
-  const handleExport = (filename) => modelViewerRef.current?.exportModel(filename);
+  const handleExport = async () => {
+    const filePath = await window.electron.getSaveFilename(); // Prompt to get file path
+    const mesh = modelViewerRef.current?.mesh; // Retrieve the mesh reference
+    
+    if (filePath && mesh) {
+      exportModel(mesh, filePath);
+    } else {
+      console.warn("No model loaded to export or file path not provided.");
+    }
+  };
 
   const handleHistoryChange = (undoAvailable, redoAvailable) => {
     setCanUndo(undoAvailable);

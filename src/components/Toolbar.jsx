@@ -18,13 +18,9 @@ function Toolbar({ onFileUpload, onModeToggle, onUndo, onRedo, onExport, canUndo
   };
 
   const handleExport = async () => {
-    console.log("handleExport called"); // Debug log
-    const filePath = await window.electron.getSaveFilename();
-    if (filePath) {
-      onExport(filePath);
-    }
+    console.log("Toolbar export button clicked");
+    await onExport();  // Calls the updated handleExport function in App.js
   };
-
   return (
     <div className="toolbar fixed top-0 left-0 right-0 z-20 bg-gray-100 shadow-md p-4 flex justify-center items-center gap-4">
       <button

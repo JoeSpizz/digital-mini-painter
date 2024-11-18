@@ -138,7 +138,8 @@ const ModelViewer = forwardRef(
       },
       canUndo: () => history.current.length > 0,
       canRedo: () => redoHistory.current.length > 0,
-      exportModel,
+      mesh: meshRef.current,
+    
     }));
 
     useEffect(() => {
@@ -345,14 +346,6 @@ const ModelViewer = forwardRef(
 
     // src/components/ModelViewer/ModelViewer.js
 
-    const exportModel = (filePath) => {
-      console.log("exportModel called with path:", filePath);
-      const exporter = new GLTFExporter();
-      exporter.parse(meshRef.current, async (gltf) => {
-        const data = JSON.stringify(gltf);
-        await window.electron.saveFile(filePath, data);
-      });
-    };
 
     return geometry && geometry.boundingSphere ? (
       <>
