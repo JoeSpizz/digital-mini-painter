@@ -138,6 +138,8 @@ const ModelViewer = forwardRef(
       canUndo: () => history.current.length > 0,
       canRedo: () => redoHistory.current.length > 0,
       mesh: meshRef.current,
+      history,
+      redoHistory,
     
     }));
 

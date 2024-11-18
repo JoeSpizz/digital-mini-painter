@@ -18,7 +18,7 @@ function LightingControls() {
   const [expandedLight, setExpandedLight] = useState(null); // Track expanded light for position controls
 
   return (
-    <div title="Lighting Controls" defaultOpen>
+    <div title="Lighting Controls">
       <CollapsiblePanel>
       {/* Ambient Light Intensity */}
       <div className="mb-2">
