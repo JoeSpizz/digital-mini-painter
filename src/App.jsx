@@ -7,7 +7,7 @@ import BrushControls from './components/BrushControls/BrushControls';
 import ControlPanel from './components/ControlPanel/ControlPanel';
 import ColorPicker from './components/ColorPicker/ColorPicker';
 import exportModel from './utils/exportUtils';
-import { setAmbientIntensity, addDirectionalLight, removeDirectionalLight, setDirectionalIntensity, setDirectionalPosition } from './redux/lightingSlice';
+import LightingControls from './components/LightingControls/LightingControls';
 import { useDispatch, useSelector } from 'react-redux';
 import { resetMaterial } from './redux/materialSlice';
 import { Canvas } from '@react-three/fiber';
@@ -188,97 +188,16 @@ const handleFileUpload = async (url, type, originalFilePath) => {
 
       </Canvas>
 
-      {/* Draggable Lighting Control Panel */}
+      {/* Panels */}
+
       <Draggable handle=".drag-handle">
-        <div className="absolute bottom-20 left-5 z-10 bg-white p-4 shadow-lg rounded-lg">
-          <div className="drag-handle cursor-move bg-gray-300 p-2 rounded-t text-center font-semibold">
-            Lighting Controls
+        <div className="absolute top-20 left-5 z-10 bg-white p-4 shadow-lg rounded-lg">
+        <div className="drag-handle cursor-move bg-gray-300 p-2 rounded-t text-center font-semibold">
+           Lighting Controls
           </div>
-
-          {/* Ambient Light Intensity */}
-          <div className="mb-4">
-            <label>Ambient Intensity</label>
-            <input
-              type="range"
-              min="0"
-              max="5"
-              step="0.1"
-              value={ambientIntensity}
-              onChange={(e) => dispatch(setAmbientIntensity(parseFloat(e.target.value)))}
-              className="w-full"
-            />
-          </div>
-
-          {/* Directional Lights Controls */}
-          {directionalLights.map((light) => (
-            <div key={light.id} className="mb-4">
-              <label>Directional Light {light.id} Intensity</label>
-              <input
-                type="range"
-                min="0"
-                max="5"
-                step="0.1"
-                value={light.intensity}
-                onChange={(e) => dispatch(setDirectionalIntensity({ id: light.id, intensity: parseFloat(e.target.value) }))}
-                className="w-full"
-              />
-              <label>Position X</label>
-              <input
-                type="range"
-                min="-50"
-                max="50"
-                value={light.position[0]}
-                onChange={(e) => {
-                  const newPos = [...light.position];
-                  newPos[0] = parseFloat(e.target.value);
-                  dispatch(setDirectionalPosition({ id: light.id, position: newPos }));
-                }}
-                className="w-full"
-              />
-               {/* Position Y */}
-               <label>Position Y</label>
-              <input
-                type="range"
-                min="-50"
-                max="50"
-                value={light.position[1]}
-                onChange={(e) => {
-                  const newPos = [...light.position];
-                  newPos[1] = parseFloat(e.target.value);
-                  dispatch(setDirectionalPosition({ id: light.id, position: newPos }));
-                }}
-                className="w-full"
-              />
-
-              {/* Optional: Position Z */}
-              <label>Position Z</label>
-              <input
-                type="range"
-                min="-50"
-                max="50"
-                value={light.position[2]}
-                onChange={(e) => {
-                  const newPos = [...light.position];
-                  newPos[2] = parseFloat(e.target.value);
-                  dispatch(setDirectionalPosition({ id: light.id, position: newPos }));
-                }}
-                className="w-full"
-              />
-              {/* Add similar sliders for Y and Z position here */}
-              <button onClick={() => dispatch(removeDirectionalLight(light.id))} className="mt-2 text-red-500">
-                Remove Light
-              </button>
-            </div>
-          ))}
-
-          {/* Button to add a new directional light */}
-          <button onClick={() => dispatch(addDirectionalLight())} className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded shadow">
-            Add Directional Light
-          </button>
+          <LightingControls />
         </div>
       </Draggable>
-
-      {/* Panels */}
       <Draggable handle=".drag-handle">
         <div className="absolute top-20 left-5 z-10 bg-white p-4 shadow-lg rounded-lg">
           <div className="drag-handle cursor-move bg-gray-300 p-2 rounded-t text-center font-semibold">

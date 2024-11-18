@@ -4,6 +4,7 @@ import React from 'react';
 // import { SketchPicker } from 'react-color';
 import { useSelector, useDispatch } from 'react-redux';
 import { setMetalness, setRoughness } from '../../redux/materialSlice';
+import CollapsiblePanel from '../CollapsiblePanel';
 
 function ColorPicker() {
   const dispatch = useDispatch();
@@ -35,7 +36,7 @@ function ColorPicker() {
           onChangeComplete={handleColorChange} 
         />
       </div>*/}
-      
+      <CollapsiblePanel>
       {/* Metalness Slider */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700">Metalness</label>
@@ -65,6 +66,7 @@ function ColorPicker() {
         />
         <span className="mt-1 text-sm text-gray-600">{roughness.toFixed(2)}</span>
       </div>
+      </CollapsiblePanel>
     </div>
   );
 }

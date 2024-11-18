@@ -18,7 +18,7 @@ function BrushControls({
     <div className="mt-4">
       {/* Brush Color Picker */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Brush Color</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Brush Color</label>
         <SketchPicker
           color={brushColor.getStyle()}
           onChangeComplete={(color) => setBrushColor(new Color(color.hex))}
@@ -27,7 +27,7 @@ function BrushControls({
 
       {/* **New: Color History Section** */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Color History</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Color History</label>
         <div className="flex flex-wrap gap-2">
           {colorHistory.map((color, index) => (
             <button
@@ -43,7 +43,7 @@ function BrushControls({
 
       {/* Brush Size Slider */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Brush Size</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Brush Size</label>
         <input
           type="range"
           min="0.1"
@@ -58,7 +58,7 @@ function BrushControls({
 
       {/* Brush Opacity Slider */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Brush Opacity</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Brush Opacity</label>
         <input
           type="range"
           min="0.1"
