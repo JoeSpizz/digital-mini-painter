@@ -1,8 +1,10 @@
 // src/components/BrushControls/BrushControls.js
 
 import React from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { SketchPicker } from 'react-color';
 import { Color } from 'three';
+import { setPaintType } from '../../redux/materialSlice';
 
 function BrushControls({
   brushColor,
@@ -11,9 +13,12 @@ function BrushControls({
   setBrushSize,
   brushOpacity,
   setBrushOpacity,
-  colorHistory, // **Receive Color History**
-  selectColorFromHistory, // **Receive Selection Function**
+  colorHistory,
+  selectColorFromHistory,
 }) {
+  const dispatch = useDispatch();
+  const paintType = useSelector((state) => state.material.paintType); // Access current paint type
+
   return (
     <div className="mt-4">
       {/* Brush Color Picker */}
@@ -25,20 +30,16 @@ function BrushControls({
         />
       </div>
 
-      {/* **New: Color History Section** */}
+      {/* Metallic Paint Toggle Button */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1">Color History</label>
-        <div className="flex flex-wrap gap-2">
-          {colorHistory.map((color, index) => (
-            <button
-              key={index}
-              onClick={() => selectColorFromHistory(color)}
-              className="w-6 h-6 border border-gray-300 rounded"
-              style={{ backgroundColor: color }}
-              title={color}
-            />
-          ))}
-        </div>
+        <button
+          onClick={() => dispatch(setPaintType(paintType === 'basic' ? 'metallic' : 'basic'))}
+          className={`w-full py-2 font-medium rounded ${
+            paintType === 'metallic' ? 'bg-blue-500 text-white' : 'bg-gray-300 text-gray-700'
+          }`}
+        >
+          {paintType === 'metallic' ? 'Metallic Paint' : 'Basic Paint'}
+        </button>
       </div>
 
       {/* Brush Size Slider */}

@@ -6,6 +6,7 @@ const initialState = {
   color: '#FFFFFF',   // Default color
   metalness: 0.5,     // Default metalness
   roughness: 0.5,     // Default roughness
+  paintType: 'basic',
 };
 
 const materialSlice = createSlice({
@@ -21,6 +22,9 @@ const materialSlice = createSlice({
     setRoughness(state, action) {
       state.roughness = action.payload;
     },
+    setPaintType(state, action) { // Action to toggle paint type
+      state.paintType = action.payload;
+    },
     resetMaterial(state) {
       state.color = initialState.color;
       state.metalness = initialState.metalness;
@@ -29,5 +33,5 @@ const materialSlice = createSlice({
   },
 });
 
-export const { setColor, setMetalness, setRoughness, resetMaterial } = materialSlice.actions;
+export const { setColor, setMetalness, setRoughness, resetMaterial, setPaintType } = materialSlice.actions;
 export default materialSlice.reducer;

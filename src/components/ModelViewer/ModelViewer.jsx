@@ -80,11 +80,10 @@ const ModelViewer = forwardRef(
     }, [modelPath, modelType]);
 
     // Material Properties from Redux
-    const { color, metalness, roughness } = useSelector(
-      (state) => state.material
-    );
+ 
 
     // Transformation Properties from Redux
+    const { color, metalness, roughness, paintType } = useSelector((state) => state.material);
     const position = useSelector((state) => state.transform.position);
     const rotation = useSelector((state) => state.transform.rotation);
     const scale = useSelector((state) => state.transform.scale);
@@ -220,87 +219,68 @@ const ModelViewer = forwardRef(
     }, [position, rotation, scale, inverseMatrix]);
 
     // Painting Function with Smooth Blending and Optimizations
-    const paint = useCallback(
-      (event) => {
-        if (!meshRef.current) {
-          console.warn('Mesh reference is not available.');
-          return;
+ // src/components/ModelViewer/ModelViewer.js
+
+ const paint = useCallback(
+  (event) => {
+    if (!meshRef.current || !geometry) return;
+
+    const colorAttribute = geometry.attributes.color;
+    const intersectPoint = event.point.clone().applyMatrix4(inverseMatrix);
+
+    const queryBox = {
+      minX: intersectPoint.x - brushSize,
+      minY: intersectPoint.y - brushSize,
+      minZ: intersectPoint.z - brushSize,
+      maxX: intersectPoint.x + brushSize,
+      maxY: intersectPoint.y + brushSize,
+      maxZ: intersectPoint.z + brushSize,
+    };
+
+    const nearestPoints = rbushTree.search(queryBox);
+    nearestPoints.forEach((point) => {
+      const i = point.index;
+      tmpVertex.fromBufferAttribute(geometry.attributes.position, i);
+      const distance = tmpVertex.distanceTo(intersectPoint);
+
+      if (distance <= brushSize) {
+        // Capture previous color before painting
+        const previousColor = new Color(
+          colorAttribute.getX(i),
+          colorAttribute.getY(i),
+          colorAttribute.getZ(i)
+        );
+
+        // Calculate new color based on paintType
+        let newColor = new Color(brushColor).lerp(
+          previousColor,
+          (1 - distance / brushSize) * brushOpacity
+        );
+
+        if (paintType === 'metallic') {
+          newColor = newColor.multiplyScalar(1.8); // Apply metallic brightness
         }
 
-        const intersectedGeometry = event.object.geometry;
-        const colorAttribute = intersectedGeometry.attributes.color;
+        // Set the new color on the vertex
+        colorAttribute.setXYZ(i, newColor.r, newColor.g, newColor.b);
 
-        if (rbushTree && colorAttribute) {
-          const brushRadius = brushSize;
-          const intersectPoint = event.point.clone();
-
-          const localPoint = intersectPoint.applyMatrix4(inverseMatrix);
-
-          const queryBox = {
-            minX: localPoint.x - brushRadius,
-            minY: localPoint.y - brushRadius,
-            minZ: localPoint.z - brushRadius,
-            maxX: localPoint.x + brushRadius,
-            maxY: localPoint.y + brushRadius,
-            maxZ: localPoint.z + brushRadius,
-          };
-
-          const nearestPoints = rbushTree.search(queryBox);
-
-          nearestPoints.forEach((point) => {
-            const i = point.index;
-            tmpVertex.fromBufferAttribute(
-              intersectedGeometry.attributes.position,
-              i
-            );
-            const distance = tmpVertex.distanceTo(localPoint);
-
-            if (distance <= brushRadius) {
-              const existingColor = new THREE.Color(
-                colorAttribute.getX(i),
-                colorAttribute.getY(i),
-                colorAttribute.getZ(i)
-              );
-
-              // Record previous and new color for undo/redo
-              if (
-                currentAction.current &&
-                !currentAction.current.vertexSet.has(i)
-              ) {
-                const previousColor = existingColor.clone();
-                const blendedColor = existingColor.clone().lerp(
-                  brushColor,
-                  (1 - distance / brushRadius) * brushOpacity
-                );
-                currentAction.current.vertices.push({
-                  index: i,
-                  previousColor,
-                  newColor: blendedColor.clone(),
-                });
-                currentAction.current.vertexSet.add(i);
-              }
-
-              // Apply blending
-              existingColor.lerp(
-                brushColor,
-                (1 - distance / brushRadius) * brushOpacity
-              );
-
-              colorAttribute.setXYZ(i, existingColor.r, existingColor.g, existingColor.b);
-            }
+        // Record this change in currentAction for undo functionality
+        if (currentAction.current && !currentAction.current.vertexSet.has(i)) {
+          currentAction.current.vertices.push({
+            index: i,
+            previousColor: previousColor.clone(),
+            newColor: newColor.clone(),
           });
-
-          colorAttribute.needsUpdate = true;
-          console.log('Paint applied:', nearestPoints.length, 'vertices');
-
-          // **New: Invoke onColorUsed after painting**
-          if (onColorUsed) {
-            onColorUsed(brushColor);
-          }
+          currentAction.current.vertexSet.add(i); // Track vertices to avoid duplicates
         }
-      },
-      [rbushTree, brushColor, brushOpacity, brushSize, inverseMatrix, tmpVertex, onColorUsed]
-    );
+      }
+    });
+
+    colorAttribute.needsUpdate = true;
+  },
+  [brushColor, brushOpacity, brushSize, paintType, geometry]
+);
+
 
     const throttledPaint = useMemo(() => throttle(paint, 30), [paint]);
 
