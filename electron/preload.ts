@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld('electron', {
   saveFile: (filePath: string, data: any) => ipcRenderer.invoke('save-file', filePath, data),
   getSaveFilename: () => ipcRenderer.invoke('get-save-filename'),
   loadFile: (filePath: string) => ipcRenderer.invoke('load-file', filePath),
+  savePalette: (palette) => ipcRenderer.invoke('save-palette', palette),
+  getPalettes: () => ipcRenderer.invoke('get-palettes'),
 
   on: (...args: Parameters<typeof ipcRenderer.on>) => {
     const [channel, listener] = args;

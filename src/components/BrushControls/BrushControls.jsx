@@ -27,17 +27,18 @@ function BrushControls({
         <SketchPicker
           color={brushColor.getStyle()}
           onChangeComplete={(color) => setBrushColor(new Color(color.hex))}
+          presetColors={[]}
         />
       </div>
 
+      {/* Color History Grid */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-2">Color History</label>
-        <div className="flex flex-wrap gap-2">
+        <div className="color-history">
           {colorHistory.map((color, index) => (
             <button
               key={index}
               onClick={() => selectColorFromHistory(color)}
-              className="w-6 h-6 border border-gray-300 rounded"
               style={{ backgroundColor: color }}
               title={color}
             />

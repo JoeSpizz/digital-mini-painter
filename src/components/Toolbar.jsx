@@ -2,7 +2,8 @@
 
 import React from 'react';
 
-function Toolbar({ onFileUpload, onUndo, onRedo, onExport, canUndo, canRedo }) {
+function Toolbar({ onFileUpload, onUndo, onRedo, onExport, canUndo, canRedo, onOpenPaletteModal}) {
+
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
@@ -32,7 +33,7 @@ function Toolbar({ onFileUpload, onUndo, onRedo, onExport, canUndo, canRedo }) {
       <input
         id="file-upload"
         type="file"
-        accept=".stl,.gltf,.glb, .json"
+        accept=".stl,.gltf,.glb"
         onChange={handleFileChange}
         className="hidden"
       />
@@ -65,6 +66,8 @@ function Toolbar({ onFileUpload, onUndo, onRedo, onExport, canUndo, canRedo }) {
       >
         Export Model
       </button>
+
+      <button onClick={onOpenPaletteModal} className="px-4 py-2 bg-blue-500 text-white rounded-md">Manage Palettes</button>
     </div>
   );
 }

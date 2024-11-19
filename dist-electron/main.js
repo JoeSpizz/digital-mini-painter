@@ -6,6 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 const RENDERER_DIST = path.join(__dirname, "..", "dist");
+const paletteDir = path.join(app.getPath("documents"), "MiniPainter", "palettes");
 let mainWindow = null;
 function createMainWindow() {
   mainWindow = new BrowserWindow({
@@ -79,6 +80,22 @@ ipcMain.handle("load-file", async (_, filePath) => {
     console.error(`Error reading file at ${filePath}:`, error);
     throw new Error("Failed to load file");
   }
+});
+if (!fs.existsSync(paletteDir)) {
+  fs.mkdirSync(paletteDir, { recursive: true });
+}
+ipcMain.handle("save-palette", async (_, palette) => {
+  const palettePath = path.join(paletteDir, `${palette.name}.json`);
+  fs.writeFileSync(palettePath, JSON.stringify(palette, null, 2));
+  return `Palette saved as ${palette.name}`;
+});
+ipcMain.handle("get-palettes", async () => {
+  const files = fs.readdirSync(paletteDir);
+  const palettes = files.filter((file) => file.endsWith(".json")).map((file) => {
+    const data = fs.readFileSync(path.join(paletteDir, file), "utf-8");
+    return JSON.parse(data);
+  });
+  return palettes;
 });
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {

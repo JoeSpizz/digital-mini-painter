@@ -8,6 +8,7 @@ import ControlPanel from './components/ControlPanel/ControlPanel';
 import ColorPicker from './components/ColorPicker/ColorPicker';
 import exportModel from './utils/exportUtils';
 import LightingControls from './components/LightingControls/LightingControls';
+import PaletteModal from './components/Palette/PaletteManager';
 import { useDispatch, useSelector } from 'react-redux';
 import { resetMaterial } from './redux/materialSlice';
 import { Canvas } from '@react-three/fiber';
@@ -24,19 +25,15 @@ function App() {
   const dispatch = useDispatch();
   const ambientIntensity = useSelector((state) => state.lighting.ambientLight.intensity);
   const directionalLights = useSelector((state) => state.lighting.directionalLights);
-
-
-  // Brush States
   const [brushColor, setBrushColor] = useState(new Color('#FF0000'));
   const [brushSize, setBrushSize] = useState(1.5);
   const [brushOpacity, setBrushOpacity] = useState(0.75);
-  
   const modelViewerRef = useRef();
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
-
-  // Color History State
   const [colorHistory, setColorHistory] = useState([new Color('#FF0000').getStyle()]);
+  const [isPaletteModalOpen, setIsPaletteModalOpen] = useState(false);
+  const [savedPalettes, setSavedPalettes] = useState([]);
 
 // Update whenever the save state changes
 useEffect(() => {
@@ -68,6 +65,38 @@ useEffect(() => {
     });
   };
 
+  const handleSavePalette = async (paletteName) => {
+    if (!paletteName) return; // Ensure the palette name is provided
+
+    const palette = {
+      name: paletteName,
+      colors: colorHistory,
+    };
+
+    try {
+      await window.electron.savePalette(palette);
+      console.log(`Palette saved: ${paletteName}`);
+      loadSavedPalettes(); // Refresh the list after saving
+    } catch (error) {
+      console.error('Failed to save palette:', error);
+    }
+  };
+
+  const handleLoadPalette = (paletteColors) => {
+    setColorHistory((prevHistory) => {
+      // Add new colors to the existing history, filtering out duplicates
+      const mergedColors = [...new Set([...prevHistory, ...paletteColors])];
+      // Limit to the most recent 20 colors
+      return mergedColors.slice(-20);
+    });
+  };
+  
+
+  const loadSavedPalettes = async () => {
+    const palettes = await window.electron.getPalettes();
+    setSavedPalettes(palettes);
+  };
+
   const handleColorUsed = (color) => addColorToHistory(color.getStyle());
 
   const handleSetBrushColor = (color) => setBrushColor(color);
@@ -91,6 +120,7 @@ const handleFileUpload = async (url, type, originalFilePath) => {
       console.log("Color history loaded:", parsedData.colorHistory);
     } else {
       console.warn("No color history found in JSON file or file format incorrect");
+      setColorHistory([]);
     }
   } catch (error) {
     console.warn("No color history JSON file found or failed to load:", error);
@@ -106,7 +136,6 @@ const handleFileUpload = async (url, type, originalFilePath) => {
 
   console.log('New model loaded:', url);
 };
-
 
   const handleResetMaterial = () => {
     dispatch(resetMaterial());
@@ -176,6 +205,18 @@ const handleFileUpload = async (url, type, originalFilePath) => {
         onExport={handleExport}
         canUndo={canUndo}
         canRedo={canRedo}
+        onOpenPaletteModal={() => {
+          loadSavedPalettes();
+          setIsPaletteModalOpen(true);
+        }}
+      />
+
+<PaletteModal
+        isOpen={isPaletteModalOpen}
+        onClose={() => setIsPaletteModalOpen(false)}
+        onSavePalette={handleSavePalette} // Passing handleSavePalette
+        onLoadPalette={handleLoadPalette} // Passing handleLoadPalette
+        savedPalettes={savedPalettes}
       />
 
       {/* Canvas */}
@@ -216,7 +257,7 @@ const handleFileUpload = async (url, type, originalFilePath) => {
       {/* Panels */}
 
       <Draggable handle=".drag-handle">
-        <div className="absolute top-20 left-5 z-10 bg-white p-4 shadow-lg rounded-lg">
+        <div className="absolute top-64 right-80 z-10 bg-white p-4 shadow-lg rounded-lg">
         <div className="drag-handle cursor-move bg-gray-300 p-2 rounded-t text-center font-semibold">
            Lighting Controls
           </div>
@@ -251,7 +292,7 @@ const handleFileUpload = async (url, type, originalFilePath) => {
       </Draggable>
 
       <Draggable handle=".drag-handle">
-        <div className="absolute top-20 right-72 z-10 bg-white p-4 shadow-lg rounded-lg">
+        <div className="absolute top-20 right-80 z-10 bg-white p-4 shadow-lg rounded-lg">
           <div className="drag-handle cursor-move bg-gray-300 p-2 rounded-t text-center font-semibold">
             Model Material
           </div>
