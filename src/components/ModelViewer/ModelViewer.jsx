@@ -246,21 +246,40 @@ const ModelViewer = forwardRef(
       const distance = tmpVertex.distanceTo(intersectPoint);
 
       if (distance <= brushSize) {
-        // Capture previous color before painting
+        // Get the original color at this vertex
         const previousColor = new Color(
           colorAttribute.getX(i),
           colorAttribute.getY(i),
           colorAttribute.getZ(i)
         );
 
-        // Calculate blended color using opacity
-        let newColor = previousColor.clone().lerp(
-          brushColor,
-          (1 - distance / brushSize) * brushOpacity // Apply opacity as a factor here
-        );
+        let newColor = brushColor.clone();
 
         if (paintType === 'metallic') {
-          newColor = newColor.multiplyScalar(1.8); // Apply metallic brightness
+          // Sparkle effect via random brightness variations
+          const sparkleIntensity = 0.3; // Max intensity for sparkle variation
+          const randomBrightness = 1 + (Math.random() - 0.5) * sparkleIntensity; // +/- 15% variation
+          
+          // Optionally add sparkleColor if needed for tint (e.g., make sparkles more silvery)
+          const sparkleColor = new Color(1, 1, 1); // White for sparkle highlights
+          if (randomBrightness > 1) {
+            // Blend slightly towards sparkleColor on brighter spots
+            newColor = newColor.lerp(sparkleColor, (randomBrightness - 1) * 0.5);
+          }
+
+          // Apply random brightness multiplier to create sparkle effect
+          newColor = newColor.multiplyScalar(randomBrightness);
+
+          // Clamp color values to ensure valid RGB range
+          newColor.r = Math.min(1, Math.max(0, newColor.r));
+          newColor.g = Math.min(1, Math.max(0, newColor.g));
+          newColor.b = Math.min(1, Math.max(0, newColor.b));
+        } else {
+          // Regular paint blending (no sparkle effect)
+          newColor = previousColor.clone().lerp(
+            brushColor,
+            brushOpacity
+          );
         }
 
         // Set the new color on the vertex
@@ -286,6 +305,7 @@ const ModelViewer = forwardRef(
   },
   [brushColor, brushOpacity, brushSize, paintType, geometry]
 );
+
 
 
 
