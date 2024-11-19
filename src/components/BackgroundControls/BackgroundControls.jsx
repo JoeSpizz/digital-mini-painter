@@ -1,6 +1,19 @@
 // src/components/BackgroundControls/BackgroundControls.jsx
 
-function BackgroundControls({ backgroundType, setBackgroundType, backgroundColor, setBackgroundColor, backgroundGradient, setBackgroundGradient, backgroundImage, setBackgroundImage }) {
+import React from 'react';
+
+function BackgroundControls({
+  backgroundType,
+  setBackgroundType,
+  backgroundColor,
+  setBackgroundColor,
+  backgroundGradient,
+  setBackgroundGradient,
+  backgroundImage,
+  setBackgroundImage,
+  gradientAngle,
+  setGradientAngle, // Add this as a new prop
+}) {
   const handleBackgroundTypeChange = (type) => setBackgroundType(type);
 
   const handleColorChange = (e) => setBackgroundColor(e.target.value);
@@ -38,6 +51,20 @@ function BackgroundControls({ backgroundType, setBackgroundType, backgroundColor
         </label>
         <input type="color" value={backgroundGradient[0]} onChange={(e) => handleGradientChange(0, e.target.value)} disabled={backgroundType !== 'gradient'} />
         <input type="color" value={backgroundGradient[1]} onChange={(e) => handleGradientChange(1, e.target.value)} disabled={backgroundType !== 'gradient'} />
+      </div>
+
+      {/* Gradient Angle Slider */}
+      <div className="mb-4">
+        <label className="block mb-1">Gradient Angle: {gradientAngle}°</label>
+        <input
+          type="range"
+          min="0"
+          max="360"
+          value={gradientAngle}
+          onChange={(e) => setGradientAngle(parseInt(e.target.value))}
+          disabled={backgroundType !== 'gradient'}
+          className="w-full"
+        />
       </div>
 
       <div>

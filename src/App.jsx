@@ -38,9 +38,10 @@ function App() {
   const [isBackgroundModalOpen, setIsBackgroundModalOpen] = useState(false);
   const [savedPalettes, setSavedPalettes] = useState([]);
   const [backgroundType, setBackgroundType] = useState('solid');
-  const [backgroundColor, setBackgroundColor] = useState('#ffffff');
+  const [backgroundColor, setBackgroundColor] = useState('#1e293b');
   const [backgroundGradient, setBackgroundGradient] = useState(['#ffffff', '#000000']);
   const [backgroundImage, setBackgroundImage] = useState(null);
+  const [gradientAngle, setGradientAngle] = useState(90); 
 
 // Update whenever the save state changes
 useEffect(() => {
@@ -215,7 +216,7 @@ const handleFileUpload = async (url, type, originalFilePath) => {
       return { backgroundColor };
     } else if (backgroundType === 'gradient') {
       return {
-        backgroundImage: `linear-gradient(${backgroundGradient[0]}, ${backgroundGradient[1]})`,
+        backgroundImage: `linear-gradient(${gradientAngle}deg, ${backgroundGradient[0]}, ${backgroundGradient[1]})`,
       };
     } else if (backgroundType === 'image' && backgroundImage) {
       return {
@@ -277,6 +278,8 @@ const handleFileUpload = async (url, type, originalFilePath) => {
               setBackgroundGradient={setBackgroundGradient}
               backgroundImage={backgroundImage}
               setBackgroundImage={setBackgroundImage}
+              gradientAngle={gradientAngle}
+              setGradientAngle={setGradientAngle}
             />
           </div>
         </Draggable>
