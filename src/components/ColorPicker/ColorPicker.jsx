@@ -27,6 +27,7 @@ function ColorPicker() {
 
   return (
     <div className="flex flex-col items-center text-center color-picker p-4 bg-white rounded shadow-md">
+      <h3 className="drag-handle cursor-move bg-gray-300 p-2 rounded-t text-center font-semibold">Model Material</h3>
      
       {/* Color Picker 
       <div className="mb-4">
@@ -36,7 +37,6 @@ function ColorPicker() {
           onChangeComplete={handleColorChange} 
         />
       </div>*/}
-      <CollapsiblePanel>
       {/* Metalness Slider */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700">Metalness</label>
@@ -66,7 +66,6 @@ function ColorPicker() {
         />
         <span className="mt-1 text-sm text-gray-600">{roughness.toFixed(2)}</span>
       </div>
-      </CollapsiblePanel>
     </div>
   );
 }

@@ -141,6 +141,23 @@ html, body, #root {
   transition: transform 0.1s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Optional: add shadow for a "raised" effect */
 }
+
+/* Add this to your CSS file (e.g., App.css) */
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 50; /* Ensure it appears above other elements */
+  max-width: 400px;
+  width: 90%;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
 .color-history button:hover {
   transform: scale(1.1);
 }

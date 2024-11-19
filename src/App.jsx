@@ -9,6 +9,7 @@ import ColorPicker from './components/ColorPicker/ColorPicker';
 import exportModel from './utils/exportUtils';
 import LightingControls from './components/LightingControls/LightingControls';
 import PaletteModal from './components/Palette/PaletteManager';
+import BackgroundControls from './components/BackgroundControls/BackgroundControls';
 import { useDispatch, useSelector } from 'react-redux';
 import { resetMaterial } from './redux/materialSlice';
 import { Canvas } from '@react-three/fiber';
@@ -33,7 +34,13 @@ function App() {
   const [canRedo, setCanRedo] = useState(false);
   const [colorHistory, setColorHistory] = useState([new Color('#FF0000').getStyle()]);
   const [isPaletteModalOpen, setIsPaletteModalOpen] = useState(false);
+  const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false);
+  const [isBackgroundModalOpen, setIsBackgroundModalOpen] = useState(false);
   const [savedPalettes, setSavedPalettes] = useState([]);
+  const [backgroundType, setBackgroundType] = useState('solid');
+  const [backgroundColor, setBackgroundColor] = useState('#ffffff');
+  const [backgroundGradient, setBackgroundGradient] = useState(['#ffffff', '#000000']);
+  const [backgroundImage, setBackgroundImage] = useState(null);
 
 // Update whenever the save state changes
 useEffect(() => {
@@ -194,6 +201,32 @@ const handleFileUpload = async (url, type, originalFilePath) => {
     setCanRedo(redoAvailable);
   };
 
+  const openPaletteModal = () => setIsPaletteModalOpen(true);
+  const closePaletteModal = () => setIsPaletteModalOpen(false);
+
+  const openMaterialModal = () => setIsMaterialModalOpen(true);
+  const closeMaterialModal = () => setIsMaterialModalOpen(false);
+
+  const openBackgroundModal = () => setIsBackgroundModalOpen(true);
+  const closeBackgroundModal = () => setIsBackgroundModalOpen(false);
+
+  const getBackgroundStyle = () => {
+    if (backgroundType === 'solid') {
+      return { backgroundColor };
+    } else if (backgroundType === 'gradient') {
+      return {
+        backgroundImage: `linear-gradient(${backgroundGradient[0]}, ${backgroundGradient[1]})`,
+      };
+    } else if (backgroundType === 'image' && backgroundImage) {
+      return {
+        backgroundImage: `url(${backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      };
+    }
+    return {};
+  };
+
   return (
     <div className="App relative w-screen h-screen bg-gray-100">
       {/* Toolbar */}
@@ -209,9 +242,10 @@ const handleFileUpload = async (url, type, originalFilePath) => {
           loadSavedPalettes();
           setIsPaletteModalOpen(true);
         }}
+        onOpenMaterialModal={openMaterialModal}
+        onOpenBackgroundModal={openBackgroundModal}
       />
-
-<PaletteModal
+      <PaletteModal
         isOpen={isPaletteModalOpen}
         onClose={() => setIsPaletteModalOpen(false)}
         onSavePalette={handleSavePalette} // Passing handleSavePalette
@@ -219,8 +253,41 @@ const handleFileUpload = async (url, type, originalFilePath) => {
         savedPalettes={savedPalettes}
       />
 
+      {isMaterialModalOpen && (
+        <Draggable handle=".drag-handle">
+          <div className="modal">
+            <button onClick={closeMaterialModal} className="absolute top-1 right-2 p-2">✕</button>
+            <div>
+            <ColorPicker />
+            </div>
+          </div>
+        </Draggable>
+      )}
+
+      {isBackgroundModalOpen && (
+        <Draggable handle=".drag-handle">
+          <div className="modal">
+            <button onClick={closeBackgroundModal} className="absolute top-1 right-2">✕</button>
+            <BackgroundControls 
+              backgroundType={backgroundType}
+              setBackgroundType={setBackgroundType}
+              backgroundColor={backgroundColor}
+              setBackgroundColor={setBackgroundColor}
+              backgroundGradient={backgroundGradient}
+              setBackgroundGradient={setBackgroundGradient}
+              backgroundImage={backgroundImage}
+              setBackgroundImage={setBackgroundImage}
+            />
+          </div>
+        </Draggable>
+      )}
+
       {/* Canvas */}
-      <Canvas className="absolute bg-slate-900 inset-0 h-[100vh]">
+      <div
+      className="absolute inset-0"
+      style={getBackgroundStyle()} // Applying background style to the container
+    >
+      <Canvas className="h-full">
         <PerspectiveCamera makeDefault position={[0, 0, 100]} fov={75} />
         <ambientLight intensity={ambientIntensity} />
         {directionalLights.map((light) => (
@@ -253,7 +320,7 @@ const handleFileUpload = async (url, type, originalFilePath) => {
 />
 
       </Canvas>
-
+</div>
       {/* Panels */}
 
       <Draggable handle=".drag-handle">
@@ -288,15 +355,6 @@ const handleFileUpload = async (url, type, originalFilePath) => {
             Model Controls
           </div>
           <ControlPanel />
-        </div>
-      </Draggable>
-
-      <Draggable handle=".drag-handle">
-        <div className="absolute top-20 right-80 z-10 bg-white p-4 shadow-lg rounded-lg">
-          <div className="drag-handle cursor-move bg-gray-300 p-2 rounded-t text-center font-semibold">
-            Model Material
-          </div>
-          <ColorPicker />
         </div>
       </Draggable>
     </div>
