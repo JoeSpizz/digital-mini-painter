@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -6,8 +6,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 const RENDERER_DIST = path.join(__dirname, "..", "dist");
+let mainWindow = null;
 function createMainWindow() {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     icon: path.join(__dirname, "./assets/images/mini_painter.png"),
     width: 1920,
     height: 1080,
@@ -20,11 +21,33 @@ function createMainWindow() {
   });
   const startURL = VITE_DEV_SERVER_URL || `file://${path.join(RENDERER_DIST, "index.html")}`;
   mainWindow.loadURL(startURL);
+  mainWindow.on("close", async (event) => {
+    const isSaved = await (mainWindow == null ? void 0 : mainWindow.webContents.executeJavaScript("window.isModelSaved"));
+    if (!isSaved) {
+      event.preventDefault();
+      if (mainWindow) {
+        const { response } = await dialog.showMessageBox(mainWindow, {
+          type: "warning",
+          buttons: ["Cancel", "Quit Without Saving"],
+          defaultId: 0,
+          cancelId: 0,
+          title: "Unsaved Changes",
+          message: "You have unsaved changes. Are you sure you want to quit without saving?"
+        });
+        if (response === 1) {
+          mainWindow.destroy();
+        }
+      }
+    }
+  });
   mainWindow.on("closed", () => {
-    mainWindow.destroy();
+    mainWindow = null;
   });
 }
 app.on("ready", createMainWindow);
+ipcMain.handle("is-model-saved", async () => {
+  return mainWindow == null ? void 0 : mainWindow.webContents.executeJavaScript("window.isModelSaved");
+});
 ipcMain.handle("get-save-filename", async () => {
   const saveDir = path.join(app.getPath("documents"), "MiniPainter", "saved_models");
   if (!fs.existsSync(saveDir)) {

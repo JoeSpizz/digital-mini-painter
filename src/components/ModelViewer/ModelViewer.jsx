@@ -13,7 +13,6 @@ import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import { DoubleSide, Color, Vector3 } from 'three';
 import BrushPreview from '../BrushPreview/BrushPreview';
 import { useSelector } from 'react-redux';
-import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter'; // Import directly without 'THREE.'
 import * as THREE from 'three';
 import { RBush3D } from 'rbush-3d';
 import throttle from 'lodash/throttle';
@@ -29,6 +28,7 @@ const ModelViewer = forwardRef(
       brushOpacity,
       onHistoryChange,
       onColorUsed,
+      setIsModelSaved,
     },
     ref
   ) => {
@@ -282,6 +282,7 @@ const ModelViewer = forwardRef(
     if (onColorUsed) {
       onColorUsed(brushColor);
     }
+    setIsModelSaved(false);
   },
   [brushColor, brushOpacity, brushSize, paintType, geometry]
 );

@@ -8,8 +8,11 @@ const __dirname = path.dirname(__filename);
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 const RENDERER_DIST = path.join(__dirname, '..', 'dist');
 
+// Define `mainWindow` as a global variable
+let mainWindow: BrowserWindow | null = null;
+
 function createMainWindow() {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     icon: path.join(__dirname, './assets/images/mini_painter.png'),
     width: 1920,
     height: 1080,
@@ -23,12 +26,41 @@ function createMainWindow() {
   const startURL = VITE_DEV_SERVER_URL || `file://${path.join(RENDERER_DIST, 'index.html')}`;
   mainWindow.loadURL(startURL);
 
+  // Add the close event handler to prompt for unsaved changes
+  mainWindow.on('close', async (event) => {
+    const isSaved = await mainWindow?.webContents.executeJavaScript('window.isModelSaved');
+
+    if (!isSaved) {
+      event.preventDefault();
+
+      if (mainWindow) {
+        const { response } = await dialog.showMessageBox(mainWindow, {
+          type: 'warning',
+          buttons: ['Cancel', 'Quit Without Saving'],
+          defaultId: 0,
+          cancelId: 0,
+          title: 'Unsaved Changes',
+          message: 'You have unsaved changes. Are you sure you want to quit without saving?',
+        });
+      
+        if (response === 1) {
+          mainWindow.destroy(); // Allow the app to close
+        }
+      }
+    }
+  });
+
   mainWindow.on('closed', () => {
-    mainWindow.destroy();
+    mainWindow = null; // Dereference the window on close
   });
 }
 
 app.on('ready', createMainWindow);
+
+// Handle the 'is-model-saved' request from the renderer process
+ipcMain.handle('is-model-saved', async () => {
+  return mainWindow?.webContents.executeJavaScript('window.isModelSaved');
+});
 
 ipcMain.handle('get-save-filename', async () => {
   const saveDir = path.join(app.getPath('documents'), 'MiniPainter', 'saved_models');
@@ -54,16 +86,14 @@ ipcMain.handle('save-file', async (_, filePath, data) => {
   return 'No file path provided';
 });
 
-// New handler for loading a file (e.g., color history JSON)
 ipcMain.handle('load-file', async (_, filePath) => {
   try {
     if (!fs.existsSync(filePath)) {
       console.warn(`File not found: ${filePath}`);
-      return null; // Return null if the file does not exist
+      return null;
     }
-    
-    const data = fs.readFileSync(filePath, 'utf-8'); // Read the file contents
-    return data; // Return file data to the renderer
+    const data = fs.readFileSync(filePath, 'utf-8');
+    return data;
   } catch (error) {
     console.error(`Error reading file at ${filePath}:`, error);
     throw new Error('Failed to load file');

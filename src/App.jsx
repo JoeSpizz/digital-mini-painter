@@ -1,6 +1,6 @@
 // src/App.js
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import ModelViewer from './components/ModelViewer/ModelViewer';
 import Toolbar from './components/Toolbar';
 import BrushControls from './components/BrushControls/BrushControls';
@@ -20,6 +20,7 @@ import './App.css';
 function App() {
   const [modelPath, setModelPath] = useState(null);
   const [modelType, setModelType] = useState(null);
+  const [isModelSaved, setIsModelSaved] = useState(true);
   const dispatch = useDispatch();
   const ambientIntensity = useSelector((state) => state.lighting.ambientLight.intensity);
   const directionalLights = useSelector((state) => state.lighting.directionalLights);
@@ -36,6 +37,27 @@ function App() {
 
   // Color History State
   const [colorHistory, setColorHistory] = useState([new Color('#FF0000').getStyle()]);
+
+// Update whenever the save state changes
+useEffect(() => {
+  window.isModelSaved = isModelSaved;
+}, [isModelSaved]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (!isModelSaved) {
+        event.preventDefault();
+        // Modern browsers require setting returnValue to trigger a confirmation dialog
+        event.returnValue = ''; 
+      }
+    };
+  
+    window.addEventListener('beforeunload', handleBeforeUnload);
+  
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isModelSaved]);
 
   // Color History Functions
   const addColorToHistory = (newColor) => {
@@ -126,11 +148,13 @@ const handleFileUpload = async (url, type, originalFilePath) => {
         }
         return null; // In case the color format is unexpected
       }).filter(Boolean) // Filter out any null results
+      
     };
   
     try {
       await window.electron.saveFile(colorHistoryFilePath, JSON.stringify(colorHistoryData, null, 2));
       console.log("Color history saved successfully to", colorHistoryFilePath);
+      setIsModelSaved(true);
     } catch (error) {
       console.error("Error saving color history:", error);
     }
@@ -174,6 +198,7 @@ const handleFileUpload = async (url, type, originalFilePath) => {
           brushOpacity={brushOpacity}
           onHistoryChange={handleHistoryChange}
           onColorUsed={handleColorUsed}
+          setIsModelSaved={setIsModelSaved}
         />
 
 <OrbitControls
