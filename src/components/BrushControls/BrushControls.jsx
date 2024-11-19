@@ -1,5 +1,3 @@
-// src/components/BrushControls/BrushControls.js
-
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { SketchPicker } from 'react-color';
@@ -19,8 +17,43 @@ function BrushControls({
   const dispatch = useDispatch();
   const paintType = useSelector((state) => state.material.paintType); // Access current paint type
 
+  const handleSetPaintType = (type) => {
+    dispatch(setPaintType(type));
+  };
+
   return (
     <div className="mt-4">
+      {/* Paint Type Selection */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Paint Type</label>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => handleSetPaintType('basic')}
+            className={`px-4 py-2 rounded ${
+              paintType === 'basic' ? 'bg-blue-500 text-white shadow-lg ring-2 ring-blue-300' : 'bg-gray-300 text-gray-700'
+            }`}
+          >
+            Basic
+          </button>
+          <button
+            onClick={() => handleSetPaintType('metallic')}
+            className={`px-4 py-2 rounded ${
+              paintType === 'metallic' ? 'bg-blue-500 text-white shadow-lg ring-2 ring-blue-300' : 'bg-gray-300 text-gray-700'
+            }`}
+          >
+            Metallic
+          </button>
+          <button
+            onClick={() => handleSetPaintType('wash')}
+            className={`px-4 py-2 rounded ${
+              paintType === 'wash' ? 'bg-blue-500 text-white shadow-lg ring-2 ring-blue-300' : 'bg-gray-300 text-gray-700'
+            }`}
+          >
+            Wash
+          </button>
+        </div>
+      </div>
+
       {/* Brush Color Picker */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-1">Brush Color</label>
@@ -44,18 +77,6 @@ function BrushControls({
             />
           ))}
         </div>
-      </div>
-
-      {/* Metallic Paint Toggle Button */}
-      <div className="mb-4">
-        <button
-          onClick={() => dispatch(setPaintType(paintType === 'basic' ? 'metallic' : 'basic'))}
-          className={`w-full py-2 font-medium rounded ${
-            paintType === 'metallic' ? 'bg-blue-500 text-white' : 'bg-gray-300 text-gray-700'
-          }`}
-        >
-          {paintType === 'metallic' ? 'Metallic Paint' : 'Basic Paint'}
-        </button>
       </div>
 
       {/* Brush Size Slider */}

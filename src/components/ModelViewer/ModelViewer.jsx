@@ -228,6 +228,7 @@ const ModelViewer = forwardRef(
     if (!meshRef.current || !geometry) return;
 
     const colorAttribute = geometry.attributes.color;
+    const normalAttribute = geometry.attributes.normal; // Access normal data
     const intersectPoint = event.point.clone().applyMatrix4(inverseMatrix);
 
     const queryBox = {
@@ -246,7 +247,6 @@ const ModelViewer = forwardRef(
       const distance = tmpVertex.distanceTo(intersectPoint);
 
       if (distance <= brushSize) {
-        // Get the original color at this vertex
         const previousColor = new Color(
           colorAttribute.getX(i),
           colorAttribute.getY(i),
@@ -255,44 +255,48 @@ const ModelViewer = forwardRef(
 
         let newColor = brushColor.clone();
 
-        if (paintType === 'metallic') {
-          // Sparkle effect via random brightness variations
-          const sparkleIntensity = 0.3; // Max intensity for sparkle variation
-          const randomBrightness = 1 + (Math.random() - 0.5) * sparkleIntensity; // +/- 15% variation
-          
-          // Optionally add sparkleColor if needed for tint (e.g., make sparkles more silvery)
-          const sparkleColor = new Color(1, 1, 1); // White for sparkle highlights
-          if (randomBrightness > 1) {
-            // Blend slightly towards sparkleColor on brighter spots
-            newColor = newColor.lerp(sparkleColor, (randomBrightness - 1) * 0.5);
-          }
+        if (paintType === 'wash') {
+          // Use normals to determine wash opacity in creases
+          const normal = new THREE.Vector3().fromBufferAttribute(normalAttribute, i);
+          const averageNeighborNormal = new THREE.Vector3();
 
-          // Apply random brightness multiplier to create sparkle effect
-          newColor = newColor.multiplyScalar(randomBrightness);
+          // Calculate average normal of neighbors to detect creases
+          nearestPoints.forEach((neighbor) => {
+            if (neighbor.index !== i) {
+              const neighborNormal = new THREE.Vector3().fromBufferAttribute(normalAttribute, neighbor.index);
+              averageNeighborNormal.add(neighborNormal);
+            }
+          });
+          averageNeighborNormal.normalize();
 
-          // Clamp color values to ensure valid RGB range
+          // Calculate alignment between vertex normal and average neighbor normal
+          const alignment = normal.dot(averageNeighborNormal);
+          const opacity = THREE.MathUtils.mapLinear(alignment, 0.5, .85, 0.9, 0.01); // Higher opacity in creases, lower on flat surfaces
+
+          // Blend wash with previous color based on calculated opacity
+          newColor = previousColor.clone().lerp(brushColor, Math.min(Math.max(opacity, 0.01), 1.0));
+        } else if (paintType === 'metallic') {
+          // Metallic sparkle logic here
+          const sparkleIntensity = 0.3;
+          const randomBrightness = 1 + (Math.random() - 0.5) * sparkleIntensity;
+          newColor = newColor.multiplyScalar(randomBrightness).lerp(new Color(1, 1, 1), (randomBrightness - 1) * 0.5);
           newColor.r = Math.min(1, Math.max(0, newColor.r));
           newColor.g = Math.min(1, Math.max(0, newColor.g));
           newColor.b = Math.min(1, Math.max(0, newColor.b));
         } else {
-          // Regular paint blending (no sparkle effect)
-          newColor = previousColor.clone().lerp(
-            brushColor,
-            brushOpacity
-          );
+          // Regular paint blending
+          newColor = previousColor.clone().lerp(brushColor, brushOpacity);
         }
 
-        // Set the new color on the vertex
         colorAttribute.setXYZ(i, newColor.r, newColor.g, newColor.b);
 
-        // Record this change in currentAction for undo functionality
         if (currentAction.current && !currentAction.current.vertexSet.has(i)) {
           currentAction.current.vertices.push({
             index: i,
             previousColor: previousColor.clone(),
             newColor: newColor.clone(),
           });
-          currentAction.current.vertexSet.add(i); // Track vertices to avoid duplicates
+          currentAction.current.vertexSet.add(i);
         }
       }
     });
@@ -305,6 +309,7 @@ const ModelViewer = forwardRef(
   },
   [brushColor, brushOpacity, brushSize, paintType, geometry]
 );
+
 
 
 
