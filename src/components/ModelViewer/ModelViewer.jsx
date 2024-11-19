@@ -253,10 +253,10 @@ const ModelViewer = forwardRef(
           colorAttribute.getZ(i)
         );
 
-        // Calculate new color based on paintType
-        let newColor = new Color(brushColor).lerp(
-          previousColor,
-          (1 - distance / brushSize) * brushOpacity
+        // Calculate blended color using opacity
+        let newColor = previousColor.clone().lerp(
+          brushColor,
+          (1 - distance / brushSize) * brushOpacity // Apply opacity as a factor here
         );
 
         if (paintType === 'metallic') {
@@ -286,6 +286,7 @@ const ModelViewer = forwardRef(
   },
   [brushColor, brushOpacity, brushSize, paintType, geometry]
 );
+
 
 
     const throttledPaint = useMemo(() => throttle(paint, 30), [paint]);
