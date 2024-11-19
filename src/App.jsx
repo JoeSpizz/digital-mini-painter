@@ -10,6 +10,7 @@ import exportModel from './utils/exportUtils';
 import LightingControls from './components/LightingControls/LightingControls';
 import PaletteModal from './components/Palette/PaletteManager';
 import BackgroundControls from './components/BackgroundControls/BackgroundControls';
+import TutorialModal from './components/TutorialModel/TutorialModel';
 import { useDispatch, useSelector } from 'react-redux';
 import { resetMaterial } from './redux/materialSlice';
 import { Canvas } from '@react-three/fiber';
@@ -36,6 +37,7 @@ function App() {
   const [isPaletteModalOpen, setIsPaletteModalOpen] = useState(false);
   const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false);
   const [isBackgroundModalOpen, setIsBackgroundModalOpen] = useState(false);
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   const [savedPalettes, setSavedPalettes] = useState([]);
   const [backgroundType, setBackgroundType] = useState('solid');
   const [backgroundColor, setBackgroundColor] = useState('#1e293b');
@@ -245,6 +247,7 @@ const handleFileUpload = async (url, type, originalFilePath) => {
         }}
         onOpenMaterialModal={openMaterialModal}
         onOpenBackgroundModal={openBackgroundModal}
+        onOpenTutorial={() => setIsTutorialOpen(true)}
       />
       <PaletteModal
         isOpen={isPaletteModalOpen}
@@ -252,6 +255,11 @@ const handleFileUpload = async (url, type, originalFilePath) => {
         onSavePalette={handleSavePalette} // Passing handleSavePalette
         onLoadPalette={handleLoadPalette} // Passing handleLoadPalette
         savedPalettes={savedPalettes}
+      />
+
+<TutorialModal
+        isOpen={isTutorialOpen}
+        onClose={() => setIsTutorialOpen(false)}
       />
 
       {isMaterialModalOpen && (

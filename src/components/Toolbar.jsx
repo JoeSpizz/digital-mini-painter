@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-function Toolbar({ onFileUpload, onUndo, onRedo, onExport, canUndo, canRedo, onOpenPaletteModal, onOpenMaterialModal, onOpenBackgroundModal }) {
+function Toolbar({ onFileUpload, onUndo, onRedo, onExport, canUndo, canRedo, onOpenPaletteModal, onOpenMaterialModal, onOpenBackgroundModal, onOpenTutorial  }) {
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
@@ -28,7 +28,8 @@ function Toolbar({ onFileUpload, onUndo, onRedo, onExport, canUndo, canRedo, onO
 
       <button onClick={onOpenMaterialModal} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">Model Material</button>
       <button onClick={onOpenBackgroundModal} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">Background Settings</button>
-      <button onClick={onOpenPaletteModal} className="px-4 py-2 bg-blue-500 text-white rounded-md">Manage Palettes</button>
+      <button onClick={onOpenPaletteModal} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">Manage Palettes</button>
+      <button onClick={onOpenTutorial} className="px-4 py-2 bg-green-500 text-white font-bold rounded-md">Tutorial</button>
     </div>
   );
 }
