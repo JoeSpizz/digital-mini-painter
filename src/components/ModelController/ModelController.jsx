@@ -1,12 +1,11 @@
-// src/components/ColorPicker/ColorPicker.js
+// src/components/ModelController/ModelController.js
 
 import React from 'react';
 // import { SketchPicker } from 'react-color';
 import { useSelector, useDispatch } from 'react-redux';
 import { setMetalness, setRoughness } from '../../redux/materialSlice';
-import CollapsiblePanel from '../CollapsiblePanel';
 
-function ColorPicker() {
+function ModelController() {
   const dispatch = useDispatch();
   
   // Access material properties from Redux
@@ -27,7 +26,6 @@ function ColorPicker() {
 
   return (
     <div className="flex flex-col items-center text-center color-picker p-4 bg-white rounded shadow-md">
-      <h3 className="drag-handle cursor-move bg-gray-300 p-2 rounded-t text-center font-semibold">Model Material</h3>
      
       {/* Color Picker 
       <div className="mb-4">
@@ -37,6 +35,7 @@ function ColorPicker() {
           onChangeComplete={handleColorChange} 
         />
       </div>*/}
+      
       {/* Metalness Slider */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700">Metalness</label>
@@ -70,4 +69,4 @@ function ColorPicker() {
   );
 }
 
-export default ColorPicker;
+export default ModelController;

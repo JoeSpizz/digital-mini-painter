@@ -13,7 +13,6 @@ import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import { DoubleSide, Color, Vector3 } from 'three';
 import BrushPreview from '../BrushPreview/BrushPreview';
 import { useSelector } from 'react-redux';
-import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter'; // Import directly without 'THREE.'
 import * as THREE from 'three';
 import { RBush3D } from 'rbush-3d';
 import throttle from 'lodash/throttle';
@@ -29,6 +28,7 @@ const ModelViewer = forwardRef(
       brushOpacity,
       onHistoryChange,
       onColorUsed,
+      setIsModelSaved,
     },
     ref
   ) => {
@@ -80,11 +80,10 @@ const ModelViewer = forwardRef(
     }, [modelPath, modelType]);
 
     // Material Properties from Redux
-    const { color, metalness, roughness } = useSelector(
-      (state) => state.material
-    );
+ 
 
     // Transformation Properties from Redux
+    const { color, metalness, roughness, paintType } = useSelector((state) => state.material);
     const position = useSelector((state) => state.transform.position);
     const rotation = useSelector((state) => state.transform.rotation);
     const scale = useSelector((state) => state.transform.scale);
@@ -138,31 +137,26 @@ const ModelViewer = forwardRef(
       },
       canUndo: () => history.current.length > 0,
       canRedo: () => redoHistory.current.length > 0,
-      exportModel,
+      mesh: meshRef.current,
+      history,
+      redoHistory,
+    
     }));
 
-    useEffect(() => {
-      if (geometry) {
-        geometry.center();
-        if (!geometry.hasAttribute('normal')) {
-          geometry.computeVertexNormals();
-        }
-    
-        // Initialize vertex colors only if they don't exist
-        if (!geometry.hasAttribute('color')) {
-          const colors = [];
-          const defaultColor = new Color(color);
-          for (let i = 0; i < geometry.attributes.position.count; i++) {
-            colors.push(defaultColor.r, defaultColor.g, defaultColor.b);
-          }
-          geometry.setAttribute(
-            'color',
-            new THREE.Float32BufferAttribute(colors, 3)
-          );
-          geometry.attributes.color.needsUpdate = true;
-        }
-      }
-    }, [geometry, color]);
+useEffect(() => {
+  if (geometry) {
+    if (!geometry.boundingSphere) geometry.computeBoundingSphere();
+    if (!geometry.hasAttribute('normal')) geometry.computeVertexNormals();
+
+    // Only initialize colors once
+    if (!geometry.hasAttribute('color')) {
+      const colorArray = new Float32Array(geometry.attributes.position.count * 3).fill(1); // Default white
+      geometry.setAttribute('color', new THREE.BufferAttribute(colorArray, 3));
+      geometry.attributes.color.needsUpdate = true;
+    }
+  }
+}, [geometry]);
+
 
     // Build RBush3D spatial index
     useEffect(() => {
@@ -219,89 +213,170 @@ const ModelViewer = forwardRef(
     }, [position, rotation, scale, inverseMatrix]);
 
     // Painting Function with Smooth Blending and Optimizations
-    const paint = useCallback(
-      (event) => {
-        if (!meshRef.current) {
-          console.warn('Mesh reference is not available.');
-          return;
-        }
+ // src/components/ModelViewer/ModelViewer.js
 
-        const intersectedGeometry = event.object.geometry;
-        const colorAttribute = intersectedGeometry.attributes.color;
+ const paint = useCallback(
+  (event) => {
+    if (!meshRef.current || !geometry) return;
 
-        if (rbushTree && colorAttribute) {
-          const brushRadius = brushSize;
-          const intersectPoint = event.point.clone();
+    const colorAttribute = geometry.attributes.color;
+    const normalAttribute = geometry.attributes.normal; // Access normal data
+    const intersectPoint = event.point.clone().applyMatrix4(inverseMatrix);
 
-          const localPoint = intersectPoint.applyMatrix4(inverseMatrix);
+    const queryBox = {
+      minX: intersectPoint.x - brushSize,
+      minY: intersectPoint.y - brushSize,
+      minZ: intersectPoint.z - brushSize,
+      maxX: intersectPoint.x + brushSize,
+      maxY: intersectPoint.y + brushSize,
+      maxZ: intersectPoint.z + brushSize,
+    };
 
-          const queryBox = {
-            minX: localPoint.x - brushRadius,
-            minY: localPoint.y - brushRadius,
-            minZ: localPoint.z - brushRadius,
-            maxX: localPoint.x + brushRadius,
-            maxY: localPoint.y + brushRadius,
-            maxZ: localPoint.z + brushRadius,
+  const nearestPoints = rbushTree.search(queryBox).filter((point) => {
+  tmpVertex.fromBufferAttribute(geometry.attributes.position, point.index);
+  return tmpVertex.distanceTo(intersectPoint) <= brushSize; // Only include points within the brush radius
+});
+    nearestPoints.forEach((point) => {
+      const i = point.index;
+      tmpVertex.fromBufferAttribute(geometry.attributes.position, i);
+      const distance = tmpVertex.distanceTo(intersectPoint);
+
+      if (distance <= brushSize) {
+        const previousColor = new Color(
+          colorAttribute.getX(i),
+          colorAttribute.getY(i),
+          colorAttribute.getZ(i)
+        );
+
+        let newColor = brushColor.clone();
+
+        if (paintType === 'dryBrush') {
+          const DRY_BRUSH_CONFIG = {
+            maxNeighbors: 8,         // Neighbor sampling
+            angleThreshold: 70,      // Edge detection sensitivity
+            opacityMultiplier: 0.35,  // Dry brush intensity
+            minEdgeIntensity: 0.2,   // Minimum edge highlight
           };
-
-          const nearestPoints = rbushTree.search(queryBox);
-
-          nearestPoints.forEach((point) => {
-            const i = point.index;
-            tmpVertex.fromBufferAttribute(
-              intersectedGeometry.attributes.position,
-              i
-            );
-            const distance = tmpVertex.distanceTo(localPoint);
-
-            if (distance <= brushRadius) {
-              const existingColor = new THREE.Color(
-                colorAttribute.getX(i),
-                colorAttribute.getY(i),
-                colorAttribute.getZ(i)
-              );
-
-              // Record previous and new color for undo/redo
-              if (
-                currentAction.current &&
-                !currentAction.current.vertexSet.has(i)
-              ) {
-                const previousColor = existingColor.clone();
-                const blendedColor = existingColor.clone().lerp(
-                  brushColor,
-                  (1 - distance / brushRadius) * brushOpacity
-                );
-                currentAction.current.vertices.push({
-                  index: i,
-                  previousColor,
-                  newColor: blendedColor.clone(),
-                });
-                currentAction.current.vertexSet.add(i);
+        
+          tmpVertex.fromBufferAttribute(geometry.attributes.position, i);
+          const normal = new THREE.Vector3().fromBufferAttribute(normalAttribute, i);
+          
+          let edgeIntensity = 0;
+          const maxNeighbors = Math.min(nearestPoints.length, DRY_BRUSH_CONFIG.maxNeighbors);
+          const neighborStep = Math.max(1, Math.floor(nearestPoints.length / maxNeighbors));
+        
+          for (let j = 0; j < nearestPoints.length; j += neighborStep) {
+            const neighbor = nearestPoints[j];
+            if (neighbor.index !== i) {
+              const neighborNormal = new THREE.Vector3().fromBufferAttribute(normalAttribute, neighbor.index);
+              
+              const angleDifference = Math.acos(
+                Math.min(Math.max(normal.dot(neighborNormal), -1), 1)
+              ) * (180 / Math.PI);
+              
+              // Detect raised edges by looking for SMALLER angle differences
+              if (angleDifference < DRY_BRUSH_CONFIG.angleThreshold) {
+                // Closer to parallel normals indicate raised surfaces
+                edgeIntensity += 1 - (angleDifference / DRY_BRUSH_CONFIG.angleThreshold);
               }
-
-              // Apply blending
-              existingColor.lerp(
-                brushColor,
-                (1 - distance / brushRadius) * brushOpacity
-              );
-
-              colorAttribute.setXYZ(i, existingColor.r, existingColor.g, existingColor.b);
             }
-          });
-
-          colorAttribute.needsUpdate = true;
-          console.log('Paint applied:', nearestPoints.length, 'vertices');
-
-          // **New: Invoke onColorUsed after painting**
-          if (onColorUsed) {
-            onColorUsed(brushColor);
+          }
+        
+          edgeIntensity = Math.min(edgeIntensity / maxNeighbors, 1);
+          
+          // Invert the intensity calculation compared to wash
+          const dryBrushOpacity = Math.max(
+            edgeIntensity * DRY_BRUSH_CONFIG.opacityMultiplier, 
+            DRY_BRUSH_CONFIG.minEdgeIntensity
+          );
+        
+          // Only apply if edge intensity is significant
+          if (dryBrushOpacity > DRY_BRUSH_CONFIG.minEdgeIntensity) {
+            newColor = previousColor.clone().lerp(brushColor, dryBrushOpacity);
+          } else {
+            // Minimal to no change on non-edges
+            newColor = previousColor.clone();
           }
         }
-      },
-      [rbushTree, brushColor, brushOpacity, brushSize, inverseMatrix, tmpVertex, onColorUsed]
-    );
+        
+        else if (paintType === 'wash') {
+          const WASH_CONFIG = {
+            maxNeighbors: 8,         // Neighbor sampling
+            angleThreshold: 45,      // Crease sensitivity
+            opacityMultiplier: 0.5,  // Wash intensity
+            minOpacity: 0.005,        // Minimum paint threshold
+          };
+        
+          tmpVertex.fromBufferAttribute(geometry.attributes.position, i);
+          const normal = new THREE.Vector3().fromBufferAttribute(normalAttribute, i);
+          
+          let creaseIntensity = 0;
+          const maxNeighbors = Math.min(nearestPoints.length, WASH_CONFIG.maxNeighbors);
+          const neighborStep = Math.max(1, Math.floor(nearestPoints.length / maxNeighbors));
+        
+          for (let j = 0; j < nearestPoints.length; j += neighborStep) {
+            const neighbor = nearestPoints[j];
+            if (neighbor.index !== i) {
+              const neighborNormal = new THREE.Vector3().fromBufferAttribute(normalAttribute, neighbor.index);
+              
+              const angleDifference = Math.acos(
+                Math.min(Math.max(normal.dot(neighborNormal), -1), 1)
+              ) * (180 / Math.PI);
+              
+              if (angleDifference > WASH_CONFIG.angleThreshold) {
+                creaseIntensity += 1 / (1 + Math.abs(angleDifference - 90) / 45);
+              }
+            }
+          }
+        
+          creaseIntensity = Math.min(creaseIntensity / maxNeighbors, 1);
+          const washOpacity = Math.pow(creaseIntensity, 2) * WASH_CONFIG.opacityMultiplier;
+          
+          if (washOpacity > WASH_CONFIG.minOpacity) {
+            newColor = previousColor.clone().lerp(brushColor, washOpacity);
+          } else {
+            newColor = previousColor.clone();
+          }
+        } else if (paintType === 'metallic') {
+          // Metallic sparkle logic here
+          const sparkleIntensity = 0.3;
+          const randomBrightness = 1 + (Math.random() - 0.5) * sparkleIntensity;
+          newColor = newColor.multiplyScalar(randomBrightness).lerp(new Color(1, 1, 1), (randomBrightness - 1) * 0.5);
+          newColor.r = Math.min(1, Math.max(0, newColor.r));
+          newColor.g = Math.min(1, Math.max(0, newColor.g));
+          newColor.b = Math.min(1, Math.max(0, newColor.b));
+        } else {
+          // Regular paint blending
+          newColor = previousColor.clone().lerp(brushColor, brushOpacity);
+        }
 
-    const throttledPaint = useMemo(() => throttle(paint, 30), [paint]);
+        colorAttribute.setXYZ(i, newColor.r, newColor.g, newColor.b);
+
+        if (currentAction.current && !currentAction.current.vertexSet.has(i)) {
+          currentAction.current.vertices.push({
+            index: i,
+            previousColor: previousColor.clone(),
+            newColor: newColor.clone(),
+          });
+          currentAction.current.vertexSet.add(i);
+        }
+      }
+    });
+
+    colorAttribute.needsUpdate = true;
+    if (onColorUsed) {
+      onColorUsed(brushColor);
+    }
+    setIsModelSaved(false);
+  },
+  [brushColor, brushOpacity, brushSize, paintType, geometry]
+);
+
+
+
+
+
+    const throttledPaint = useMemo(() => throttle(paint, 50), [paint]);
 
     useEffect(() => {
       return () => {
@@ -345,14 +420,6 @@ const ModelViewer = forwardRef(
 
     // src/components/ModelViewer/ModelViewer.js
 
-    const exportModel = (filePath) => {
-      console.log("exportModel called with path:", filePath);
-      const exporter = new GLTFExporter();
-      exporter.parse(meshRef.current, async (gltf) => {
-        const data = JSON.stringify(gltf);
-        await window.electron.saveFile(filePath, data);
-      });
-    };
 
     return geometry && geometry.boundingSphere ? (
       <>

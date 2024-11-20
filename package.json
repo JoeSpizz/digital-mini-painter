@@ -1,6 +1,6 @@
 {
   "name": "digital-mini-painter",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "private": true,
   "type": "module",
   "description": "Mini Painting App - A React and Electron-based painting application.",
@@ -88,7 +88,7 @@
     },
     "win": {
       "target": "nsis",
-      "icon": "assets/images/mini_painter.png"
+      "icon": "assets/images/mini_painter.ico"
     },
     "mac": {
       "target": "dmg"
