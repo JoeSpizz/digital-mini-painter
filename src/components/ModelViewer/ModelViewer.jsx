@@ -143,28 +143,20 @@ const ModelViewer = forwardRef(
     
     }));
 
-    useEffect(() => {
-      if (geometry) {
-        geometry.center();
-        if (!geometry.hasAttribute('normal')) {
-          geometry.computeVertexNormals();
-        }
-    
-        // Initialize vertex colors only if they don't exist
-        if (!geometry.hasAttribute('color')) {
-          const colors = [];
-          const defaultColor = new Color(color);
-          for (let i = 0; i < geometry.attributes.position.count; i++) {
-            colors.push(defaultColor.r, defaultColor.g, defaultColor.b);
-          }
-          geometry.setAttribute(
-            'color',
-            new THREE.Float32BufferAttribute(colors, 3)
-          );
-          geometry.attributes.color.needsUpdate = true;
-        }
-      }
-    }, [geometry, color]);
+useEffect(() => {
+  if (geometry) {
+    if (!geometry.boundingSphere) geometry.computeBoundingSphere();
+    if (!geometry.hasAttribute('normal')) geometry.computeVertexNormals();
+
+    // Only initialize colors once
+    if (!geometry.hasAttribute('color')) {
+      const colorArray = new Float32Array(geometry.attributes.position.count * 3).fill(1); // Default white
+      geometry.setAttribute('color', new THREE.BufferAttribute(colorArray, 3));
+      geometry.attributes.color.needsUpdate = true;
+    }
+  }
+}, [geometry]);
+
 
     // Build RBush3D spatial index
     useEffect(() => {
@@ -240,7 +232,10 @@ const ModelViewer = forwardRef(
       maxZ: intersectPoint.z + brushSize,
     };
 
-    const nearestPoints = rbushTree.search(queryBox);
+  const nearestPoints = rbushTree.search(queryBox).filter((point) => {
+  tmpVertex.fromBufferAttribute(geometry.attributes.position, point.index);
+  return tmpVertex.distanceTo(intersectPoint) <= brushSize; // Only include points within the brush radius
+});
     nearestPoints.forEach((point) => {
       const i = point.index;
       tmpVertex.fromBufferAttribute(geometry.attributes.position, i);
@@ -255,26 +250,93 @@ const ModelViewer = forwardRef(
 
         let newColor = brushColor.clone();
 
-        if (paintType === 'wash') {
-          // Use normals to determine wash opacity in creases
+        if (paintType === 'dryBrush') {
+          const DRY_BRUSH_CONFIG = {
+            maxNeighbors: 8,         // Neighbor sampling
+            angleThreshold: 70,      // Edge detection sensitivity
+            opacityMultiplier: 0.35,  // Dry brush intensity
+            minEdgeIntensity: 0.2,   // Minimum edge highlight
+          };
+        
+          tmpVertex.fromBufferAttribute(geometry.attributes.position, i);
           const normal = new THREE.Vector3().fromBufferAttribute(normalAttribute, i);
-          const averageNeighborNormal = new THREE.Vector3();
-
-          // Calculate average normal of neighbors to detect creases
-          nearestPoints.forEach((neighbor) => {
+          
+          let edgeIntensity = 0;
+          const maxNeighbors = Math.min(nearestPoints.length, DRY_BRUSH_CONFIG.maxNeighbors);
+          const neighborStep = Math.max(1, Math.floor(nearestPoints.length / maxNeighbors));
+        
+          for (let j = 0; j < nearestPoints.length; j += neighborStep) {
+            const neighbor = nearestPoints[j];
             if (neighbor.index !== i) {
               const neighborNormal = new THREE.Vector3().fromBufferAttribute(normalAttribute, neighbor.index);
-              averageNeighborNormal.add(neighborNormal);
+              
+              const angleDifference = Math.acos(
+                Math.min(Math.max(normal.dot(neighborNormal), -1), 1)
+              ) * (180 / Math.PI);
+              
+              // Detect raised edges by looking for SMALLER angle differences
+              if (angleDifference < DRY_BRUSH_CONFIG.angleThreshold) {
+                // Closer to parallel normals indicate raised surfaces
+                edgeIntensity += 1 - (angleDifference / DRY_BRUSH_CONFIG.angleThreshold);
+              }
             }
-          });
-          averageNeighborNormal.normalize();
-
-          // Calculate alignment between vertex normal and average neighbor normal
-          const alignment = normal.dot(averageNeighborNormal);
-          const opacity = THREE.MathUtils.mapLinear(alignment, 0.5, .85, 0.9, 0.01); // Higher opacity in creases, lower on flat surfaces
-
-          // Blend wash with previous color based on calculated opacity
-          newColor = previousColor.clone().lerp(brushColor, Math.min(Math.max(opacity, 0.01), 1.0));
+          }
+        
+          edgeIntensity = Math.min(edgeIntensity / maxNeighbors, 1);
+          
+          // Invert the intensity calculation compared to wash
+          const dryBrushOpacity = Math.max(
+            edgeIntensity * DRY_BRUSH_CONFIG.opacityMultiplier, 
+            DRY_BRUSH_CONFIG.minEdgeIntensity
+          );
+        
+          // Only apply if edge intensity is significant
+          if (dryBrushOpacity > DRY_BRUSH_CONFIG.minEdgeIntensity) {
+            newColor = previousColor.clone().lerp(brushColor, dryBrushOpacity);
+          } else {
+            // Minimal to no change on non-edges
+            newColor = previousColor.clone();
+          }
+        }
+        
+        else if (paintType === 'wash') {
+          const WASH_CONFIG = {
+            maxNeighbors: 8,         // Neighbor sampling
+            angleThreshold: 45,      // Crease sensitivity
+            opacityMultiplier: 0.5,  // Wash intensity
+            minOpacity: 0.005,        // Minimum paint threshold
+          };
+        
+          tmpVertex.fromBufferAttribute(geometry.attributes.position, i);
+          const normal = new THREE.Vector3().fromBufferAttribute(normalAttribute, i);
+          
+          let creaseIntensity = 0;
+          const maxNeighbors = Math.min(nearestPoints.length, WASH_CONFIG.maxNeighbors);
+          const neighborStep = Math.max(1, Math.floor(nearestPoints.length / maxNeighbors));
+        
+          for (let j = 0; j < nearestPoints.length; j += neighborStep) {
+            const neighbor = nearestPoints[j];
+            if (neighbor.index !== i) {
+              const neighborNormal = new THREE.Vector3().fromBufferAttribute(normalAttribute, neighbor.index);
+              
+              const angleDifference = Math.acos(
+                Math.min(Math.max(normal.dot(neighborNormal), -1), 1)
+              ) * (180 / Math.PI);
+              
+              if (angleDifference > WASH_CONFIG.angleThreshold) {
+                creaseIntensity += 1 / (1 + Math.abs(angleDifference - 90) / 45);
+              }
+            }
+          }
+        
+          creaseIntensity = Math.min(creaseIntensity / maxNeighbors, 1);
+          const washOpacity = Math.pow(creaseIntensity, 2) * WASH_CONFIG.opacityMultiplier;
+          
+          if (washOpacity > WASH_CONFIG.minOpacity) {
+            newColor = previousColor.clone().lerp(brushColor, washOpacity);
+          } else {
+            newColor = previousColor.clone();
+          }
         } else if (paintType === 'metallic') {
           // Metallic sparkle logic here
           const sparkleIntensity = 0.3;
@@ -314,7 +376,7 @@ const ModelViewer = forwardRef(
 
 
 
-    const throttledPaint = useMemo(() => throttle(paint, 30), [paint]);
+    const throttledPaint = useMemo(() => throttle(paint, 50), [paint]);
 
     useEffect(() => {
       return () => {

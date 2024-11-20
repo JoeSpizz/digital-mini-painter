@@ -25,34 +25,66 @@ function BrushControls({
     <div className="mt-4">
       {/* Paint Type Selection */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1">Paint Type</label>
-        <div className="flex space-x-2">
-          <button
-            onClick={() => handleSetPaintType('basic')}
-            className={`px-4 py-2 rounded ${
-              paintType === 'basic' ? 'bg-blue-500 text-white shadow-lg ring-2 ring-blue-300' : 'bg-gray-300 text-gray-700'
-            }`}
-          >
-            Basic
-          </button>
-          <button
-            onClick={() => handleSetPaintType('metallic')}
-            className={`px-4 py-2 rounded ${
-              paintType === 'metallic' ? 'bg-blue-500 text-white shadow-lg ring-2 ring-blue-300' : 'bg-gray-300 text-gray-700'
-            }`}
-          >
-            Metallic
-          </button>
-          <button
-            onClick={() => handleSetPaintType('wash')}
-            className={`px-4 py-2 rounded ${
-              paintType === 'wash' ? 'bg-blue-500 text-white shadow-lg ring-2 ring-blue-300' : 'bg-gray-300 text-gray-700'
-            }`}
-          >
-            Wash
-          </button>
-        </div>
-      </div>
+  <label className="block text-sm font-medium text-gray-700 mb-2 text-center">Paint Type</label>
+  <div className="flex justify-between space-x-2">
+    {/* Basic */}
+    <div className="flex flex-col items-center">
+      <button
+        onClick={() => handleSetPaintType('basic')}
+        className={`w-12 h-12 rounded-full flex justify-center items-center ${
+          paintType === 'basic' ? 'bg-blue-500 shadow-lg ring-2 ring-blue-300' : 'bg-black'
+        }`}
+        title="Basic"
+      >
+        <span className="text-2xl">🎨</span>
+      </button>
+      <span className="text-xs text-gray-600 mt-1">Basic</span>
+    </div>
+
+    {/* Metallic */}
+    <div className="flex flex-col items-center">
+      <button
+        onClick={() => handleSetPaintType('metallic')}
+        className={`w-12 h-12 rounded-full flex justify-center items-center ${
+          paintType === 'metallic' ? 'bg-blue-500 shadow-lg ring-2 ring-blue-300' : 'bg-black'
+        }`}
+        title="Metallic"
+      >
+        <span className="text-2xl">✨</span>
+      </button>
+      <span className="text-xs text-gray-600 mt-1">Metallic</span>
+    </div>
+
+    {/* Wash */}
+    <div className="flex flex-col items-center">
+      <button
+        onClick={() => handleSetPaintType('wash')}
+        className={`w-12 h-12 rounded-full flex justify-center items-center ${
+          paintType === 'wash' ? 'bg-blue-500 shadow-lg ring-2 ring-blue-300' : 'bg-black'
+        }`}
+        title="Wash"
+      >
+        <span className="text-2xl">💧</span>      
+        </button>
+      <span className="text-xs text-gray-600 mt-1">Wash</span>
+    </div>
+
+    {/* Dry Brush */}
+    <div className="flex flex-col items-center">
+      <button
+        onClick={() => handleSetPaintType('dryBrush')}
+        className={`w-12 h-12 rounded-full flex justify-center items-center ${
+          paintType === 'dryBrush' ? 'bg-blue-500 shadow-lg ring-2 ring-blue-300' : 'bg-black'
+        }`}
+        title="Dry Brush"
+      >
+        <span className="text-2xl">🖌️</span>
+      </button>
+      <span className="text-xs text-gray-600 mt-1">Dry Brush</span>
+    </div>
+  </div>
+</div>
+
 
       {/* Brush Color Picker */}
       <div className="mb-4">
