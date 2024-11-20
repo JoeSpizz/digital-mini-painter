@@ -88,7 +88,7 @@
     },
     "win": {
       "target": "nsis",
-      "icon": "assets/images/mini_painter.png"
+      "icon": "assets/images/mini_painter.ico"
     },
     "mac": {
       "target": "dmg"
